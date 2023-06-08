@@ -4,6 +4,8 @@ sally.cli.commands module
 
 """
 import argparse
+import datetime
+import json
 
 import falcon
 from hio.base import doing
@@ -25,7 +27,7 @@ parser.add_argument('-p', '--http',
 
 def launch(args, expire=0.0):
     httpPort = args.http
-
+    print(f'launching on port {httpPort}')
     app = falcon.App(
         middleware=falcon.CORSMiddleware(
             allow_origins='*',
@@ -53,13 +55,27 @@ class Listener:
             rep: falcon.Response HTTP response
 
         """
-        print("** HEADERS **")
-        print(req.headers)
-        print("*************")
-
-        print("**** BODY ****")
+        print("Sally Hook Demo | received request")
         body = req.get_media()
-        print(body)
+        # print(body)
+        match body['action']:
+            case 'iss':
+                print(f"Sally Hook Demo | Valid Credential. Validated at {datetime.datetime.now()}")
+                self.debug_request(req, body)
+            case 'rev':
+                schemaSaid = body['data']['schema']
+                credentialSaid = body['data']['credential']
+                revocationTimestamp = body['data']['revocationTimestamp']
+                print(
+                    f"Sally Hook Demo | Invalid credential {credentialSaid} with schema {schemaSaid}. Revoked on: {revocationTimestamp}")
+                self.debug_request(req, body)
+            case _:
+                print('Unexpected action type')
+
+    def debug_request(self, req, body):
+        print("*** HEADERS **")
+        print(json.dumps(req.headers, indent=2))
         print("**************")
-
-
+        print("**** BODY ****")
+        print(json.dumps(body, indent=2))
+        print("**************")
